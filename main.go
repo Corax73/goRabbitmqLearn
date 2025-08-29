@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"rabbitmqlearn/learn"
-	"strconv"
+	"sync"
 	"time"
 
 	goutils "github.com/Corax73/goUtils"
+	"github.com/gorilla/mux"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -25,63 +28,32 @@ func main() {
 
 	setExchange("myExchange", "direct", "myRoutingKey", q.Name, ch)
 
-	body := "abc"
-	for i := 1; i <= 1000; i++ {
-		err = ch.Publish(
-			"myExchange",
-			"myRoutingKey",
-			false,
-			false,
-			amqp.Publishing{
-				ContentType:  "text/plain",
-				Body:         []byte(body + strconv.Itoa(i)),
-				DeliveryMode: amqp.Persistent,
-				Timestamp:    time.Now(),
-			},
-		)
+	r := mux.NewRouter()
+	r.HandleFunc("/publish/", func(w http.ResponseWriter, r *http.Request) {
+		postParams := make(map[string]any)
+		err := json.NewDecoder(r.Body).Decode(&postParams)
 		if err != nil {
 			goutils.Logging(err)
 		}
-	}
-	go func() {
-		for i := 1001; i <= 2000; i++ {
-			err = ch.Publish(
-				"myExchange",
-				"myRoutingKey",
-				false,
-				false,
-				amqp.Publishing{
-					ContentType:  "text/plain",
-					Body:         []byte(body + strconv.Itoa(i)),
-					DeliveryMode: amqp.Persistent,
-					Timestamp:    time.Now(),
-				},
-			)
-			if err != nil {
-				goutils.Logging(err)
+		fmt.Println(postParams)
+		if val, ok := postParams["message"]; ok {
+			result := publish(ch, val.(string))
+			if result {
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(map[string]int{"success": 1})
+			} else {
+				w.WriteHeader(http.StatusFailedDependency)
+				json.NewEncoder(w).Encode(map[string]int{"success": 0})
 			}
 		}
-	}()
-	go func() {
-		for i := 2001; i <= 3000; i++ {
-			err = ch.Publish(
-				"myExchange",
-				"myRoutingKey",
-				false,
-				false,
-				amqp.Publishing{
-					ContentType:  "text/plain",
-					Body:         []byte(body + strconv.Itoa(i)),
-					DeliveryMode: amqp.Persistent,
-					Timestamp:    time.Now(),
-				},
-			)
-			if err != nil {
-				goutils.Logging(err)
-			}
-		}
-	}()
-	fmt.Println("publication complete")
+	}).Methods("POST")
+	var wg sync.WaitGroup
+	defer wg.Wait()
+	wg.Add(1)
+	go func(handler http.Handler) {
+		http.ListenAndServe(":8083", handler)
+		defer wg.Done()
+	}(r)
 
 	conn1 := getConnect("ruser", "rpassword", "localhost", "5673")
 
@@ -152,5 +124,26 @@ func setExchange(exchangeTitle, exchangeType, routingKey, queueTitle string, ch 
 	)
 	if err != nil {
 		goutils.Logging(err)
+	}
+}
+
+func publish(ch *amqp.Channel, message string) bool {
+	err := ch.Publish(
+		"myExchange",
+		"myRoutingKey",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:  "text/plain",
+			Body:         []byte(message),
+			DeliveryMode: amqp.Persistent,
+			Timestamp:    time.Now(),
+		},
+	)
+	if err != nil {
+		goutils.Logging(err)
+		return false
+	} else {
+		return true
 	}
 }
