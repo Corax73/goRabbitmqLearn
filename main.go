@@ -11,22 +11,33 @@ import (
 
 	goutils "github.com/Corax73/goUtils"
 	"github.com/gorilla/mux"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
 	goutils.LogInit("")
-	conn := getConnect("ruser", "rpassword", "localhost", "5673")
 
-	ch, err := conn.Channel()
-	if err != nil {
-		goutils.Logging(err)
+	config := learn.ConnectConfig{
+		Login:         "ruser",
+		Password:      "rpassword",
+		Ip:            "localhost",
+		Port:          "5673",
+		QueueTitle:    "events",
+		ExchangeTitle: "myExchange",
+		ExchangeType:  "direct",
+		RoutingKey:    "myRoutingKey",
+		ConsumerTitle: "consumer1",
+		Durable:       true,
+		AutoDelete:    false,
+		Exclusive:     false,
+		NoWait:        true,
+		Internal:      false,
+		Mandatory:     false,
+		Immediate:     false,
+		AutoAck:       false,
+		NoLocal:       false,
+		Args:          nil,
 	}
-	defer ch.Close()
-
-	q := getQueue("events", ch)
-
-	setExchange("myExchange", "direct", "myRoutingKey", q.Name, ch)
+	rabbit1 := learn.Init(&config)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/publish/", func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +48,7 @@ func main() {
 		}
 		fmt.Println(postParams)
 		if val, ok := postParams["message"]; ok {
-			result := publish(ch, val.(string))
+			result := rabbit1.Publish(val.(string))
 			if result {
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(map[string]int{"success": 1})
@@ -54,18 +65,6 @@ func main() {
 		http.ListenAndServe(":8083", handler)
 		defer wg.Done()
 	}(r)
-
-	conn1 := getConnect("ruser", "rpassword", "localhost", "5673")
-
-	ch1, err := conn.Channel()
-	if err != nil {
-		goutils.Logging(err)
-	}
-	defer ch1.Close()
-
-	rabbit1 := learn.MyRabbitmq{}
-	rabbit1.Conn = conn1
-	rabbit1.Channel = ch1
 
 	msgs, err := rabbit1.Consume(context.Background(), "events")
 	if err != nil {
@@ -84,66 +83,4 @@ func main() {
 	}()
 
 	select {}
-}
-
-func getConnect(login, password, ip, port string) *amqp.Connection {
-	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/", login, password, ip, port))
-	if err != nil {
-		goutils.Logging(err)
-	}
-	return conn
-}
-
-func getQueue(queueTitle string, ch *amqp.Channel) amqp.Queue {
-	q, err := ch.QueueDeclare(queueTitle, true, false, false, true, nil)
-	if err != nil {
-		goutils.Logging(err)
-	}
-	return q
-}
-
-func setExchange(exchangeTitle, exchangeType, routingKey, queueTitle string, ch *amqp.Channel) {
-	err := ch.ExchangeDeclare(
-		exchangeTitle,
-		exchangeType,
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		goutils.Logging(err)
-	}
-	err = ch.QueueBind(
-		queueTitle,
-		routingKey,
-		exchangeTitle,
-		false,
-		nil,
-	)
-	if err != nil {
-		goutils.Logging(err)
-	}
-}
-
-func publish(ch *amqp.Channel, message string) bool {
-	err := ch.Publish(
-		"myExchange",
-		"myRoutingKey",
-		false,
-		false,
-		amqp.Publishing{
-			ContentType:  "text/plain",
-			Body:         []byte(message),
-			DeliveryMode: amqp.Persistent,
-			Timestamp:    time.Now(),
-		},
-	)
-	if err != nil {
-		goutils.Logging(err)
-		return false
-	} else {
-		return true
-	}
 }
