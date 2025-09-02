@@ -32,6 +32,9 @@ func Init(config *ConnectConfig) *MyRabbitmq {
 	r.setExchange()
 	return r
 }
+func (r *MyRabbitmq) GetConfig() *ConnectConfig {
+	return r.config
+}
 
 func (r *MyRabbitmq) setConnect() {
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/", r.config.Login, r.config.Password, r.config.Ip, r.config.Port))

@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"rabbitmqlearn/learn"
 	"sync"
-	"time"
 
 	goutils "github.com/Corax73/goUtils"
 	"github.com/gorilla/mux"
@@ -16,31 +14,38 @@ import (
 func main() {
 	goutils.LogInit("")
 
-	config := learn.ConnectConfig{
+	config1 := learn.ConnectConfig{
 		Login:         "ruser",
 		Password:      "rpassword",
 		Ip:            "localhost",
 		Port:          "5673",
-		QueueTitle:    "events",
+		QueueTitle:    "events1",
 		ExchangeTitle: "myExchange",
 		ExchangeType:  "direct",
-		RoutingKey:    "myRoutingKey",
+		RoutingKey:    "myRoutingKey1",
 		ConsumerTitle: "consumer1",
 		Durable:       true,
-		AutoDelete:    false,
-		Exclusive:     false,
 		NoWait:        true,
-		Internal:      false,
-		Mandatory:     false,
-		Immediate:     false,
-		AutoAck:       false,
-		NoLocal:       false,
-		Args:          nil,
 	}
-	rabbit1 := learn.Init(&config)
+	rabbit1 := learn.Init(&config1)
+
+	config2 := learn.ConnectConfig{
+		Login:         "ruser",
+		Password:      "rpassword",
+		Ip:            "localhost",
+		Port:          "5673",
+		QueueTitle:    "events2",
+		ExchangeTitle: "myExchange",
+		ExchangeType:  "direct",
+		RoutingKey:    "myRoutingKey2",
+		ConsumerTitle: "consumer2",
+		Durable:       true,
+		NoWait:        true,
+	}
+	rabbit2 := learn.Init(&config2)
 
 	r := mux.NewRouter()
-	r.HandleFunc("/publish/", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/publish1/", func(w http.ResponseWriter, r *http.Request) {
 		postParams := make(map[string]any)
 		err := json.NewDecoder(r.Body).Decode(&postParams)
 		if err != nil {
@@ -58,29 +63,40 @@ func main() {
 			}
 		}
 	}).Methods("POST")
-	var wg sync.WaitGroup
-	defer wg.Wait()
-	wg.Add(1)
-	go func(handler http.Handler) {
-		http.ListenAndServe(":8083", handler)
-		defer wg.Done()
-	}(r)
-
-	msgs, err := rabbit1.Consume(context.Background(), "events")
-	if err != nil {
-		goutils.Logging(err)
-	}
-
-	go func() {
-		for d := range msgs {
-			fmt.Println(string(d.Body))
-			time.Sleep(20 * time.Microsecond)
-			err := d.Ack(false)
-			if err != nil {
-				goutils.Logging(err)
+	r.HandleFunc("/publish2/", func(w http.ResponseWriter, r *http.Request) {
+		postParams := make(map[string]any)
+		err := json.NewDecoder(r.Body).Decode(&postParams)
+		if err != nil {
+			goutils.Logging(err)
+		}
+		fmt.Println(postParams)
+		if val, ok := postParams["message"]; ok {
+			result := rabbit2.Publish(val.(string))
+			if result {
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(map[string]int{"success": 1})
+			} else {
+				w.WriteHeader(http.StatusFailedDependency)
+				json.NewEncoder(w).Encode(map[string]int{"success": 0})
 			}
 		}
-	}()
+	}).Methods("POST")
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		http.ListenAndServe(":8083", r)
+	})
+
+	worker1 := learn.Worker{
+		QueueTitle: config1.QueueTitle,
+		Rmq:        rabbit1,
+	}
+
+	worker2 := learn.Worker{
+		QueueTitle: config2.QueueTitle,
+		Rmq:        rabbit2,
+	}
+	worker1.Run()
+	worker2.Run()
 
 	select {}
 }
