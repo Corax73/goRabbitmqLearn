@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"rabbitmqlearn/learn"
+	"slices"
 	"sync"
 
 	goutils "github.com/Corax73/goUtils"
@@ -15,11 +16,25 @@ import (
 func main() {
 	goutils.LogInit("")
 
+	envData := goutils.GetConfFromEnvFile("")
+	envKeys := goutils.GetMapKeysWithValue(envData)
+	neededKeys := []string{
+		"RMQ_HOST",
+		"RMQ_PORT",
+		"RMQ_LOGIN",
+		"RMQ_PASSWORD",
+	}
+	for _, val := range neededKeys {
+		if !slices.Contains(envKeys, val) {
+			fmt.Println("no rmq credentials")
+			return
+		}
+	}
 	config1 := learn.ConnectConfig{
-		Login:         "ruser",
-		Password:      "rpassword",
-		Ip:            "localhost",
-		Port:          "5673",
+		Login:         envData["RMQ_LOGIN"],
+		Password:      envData["RMQ_PASSWORD"],
+		Ip:            envData["RMQ_HOST"],
+		Port:          envData["RMQ_PORT"],
 		QueueTitle:    "events1",
 		ExchangeTitle: "myExchange",
 		ExchangeType:  "direct",
@@ -31,10 +46,10 @@ func main() {
 	rabbit1 := learn.Init(&config1)
 
 	config2 := learn.ConnectConfig{
-		Login:         "ruser",
-		Password:      "rpassword",
-		Ip:            "localhost",
-		Port:          "5673",
+		Login:         envData["RMQ_LOGIN"],
+		Password:      envData["RMQ_PASSWORD"],
+		Ip:            envData["RMQ_HOST"],
+		Port:          envData["RMQ_PORT"],
 		QueueTitle:    "events2",
 		ExchangeTitle: "myExchange",
 		ExchangeType:  "direct",
@@ -46,10 +61,10 @@ func main() {
 	rabbit2 := learn.Init(&config2)
 
 	config3 := learn.ConnectConfig{
-		Login:         "ruser",
-		Password:      "rpassword",
-		Ip:            "localhost",
-		Port:          "5673",
+		Login:         envData["RMQ_LOGIN"],
+		Password:      envData["RMQ_PASSWORD"],
+		Ip:            envData["RMQ_HOST"],
+		Port:          envData["RMQ_PORT"],
 		QueueTitle:    "events3",
 		ExchangeTitle: "myExchange",
 		ExchangeType:  "direct",
@@ -67,7 +82,6 @@ func main() {
 		if err != nil {
 			goutils.Logging(err)
 		}
-		fmt.Println(postParams)
 		if val, ok := postParams["message"]; ok {
 			jsonBytes, err := json.Marshal(val)
 			if err != nil {
@@ -89,7 +103,6 @@ func main() {
 		if err != nil {
 			goutils.Logging(err)
 		}
-		fmt.Println(postParams)
 		if val, ok := postParams["message"]; ok {
 			jsonBytes, err := json.Marshal(val)
 			if err != nil {
@@ -111,7 +124,6 @@ func main() {
 		if err != nil {
 			goutils.Logging(err)
 		}
-		fmt.Println(postParams)
 		if val, ok := postParams["message"]; ok {
 			jsonBytes, err := json.Marshal(val)
 			if err != nil {
