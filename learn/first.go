@@ -92,7 +92,7 @@ func (r *MyRabbitmq) setExchange() {
 	}
 }
 
-func (r *MyRabbitmq) Publish(message string) bool {
+func (r *MyRabbitmq) Publish(message []byte) bool {
 	err := r.channel.Publish(
 		r.config.ExchangeTitle,
 		r.config.RoutingKey,
@@ -100,7 +100,7 @@ func (r *MyRabbitmq) Publish(message string) bool {
 		r.config.Immediate,
 		amqp.Publishing{
 			ContentType:  "text/plain",
-			Body:         []byte(message),
+			Body:         message,
 			DeliveryMode: amqp.Persistent,
 			Timestamp:    time.Now(),
 		},
@@ -134,7 +134,8 @@ func (r *MyRabbitmq) Consume(ctx context.Context, qName string) (<-chan amqp.Del
 	}
 
 	out := make(chan amqp.Delivery)
-	go func() {
+	var wg sync.WaitGroup
+	wg.Go(func() {
 		defer close(out)
 		for {
 			select {
@@ -147,6 +148,6 @@ func (r *MyRabbitmq) Consume(ctx context.Context, qName string) (<-chan amqp.Del
 				return
 			}
 		}
-	}()
+	})
 	return out, nil
 }

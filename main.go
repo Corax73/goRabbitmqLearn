@@ -9,6 +9,7 @@ import (
 
 	goutils "github.com/Corax73/goUtils"
 	"github.com/gorilla/mux"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
@@ -44,6 +45,21 @@ func main() {
 	}
 	rabbit2 := learn.Init(&config2)
 
+	config3 := learn.ConnectConfig{
+		Login:         "ruser",
+		Password:      "rpassword",
+		Ip:            "localhost",
+		Port:          "5673",
+		QueueTitle:    "events3",
+		ExchangeTitle: "myExchange",
+		ExchangeType:  "direct",
+		RoutingKey:    "myRoutingKey3",
+		ConsumerTitle: "consumer3",
+		Durable:       true,
+		NoWait:        true,
+	}
+	rabbit3 := learn.Init(&config3)
+
 	r := mux.NewRouter()
 	r.HandleFunc("/publish1/", func(w http.ResponseWriter, r *http.Request) {
 		postParams := make(map[string]any)
@@ -53,7 +69,11 @@ func main() {
 		}
 		fmt.Println(postParams)
 		if val, ok := postParams["message"]; ok {
-			result := rabbit1.Publish(val.(string))
+			jsonBytes, err := json.Marshal(val)
+			if err != nil {
+				goutils.Logging(err)
+			}
+			result := rabbit1.Publish(jsonBytes)
 			if result {
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(map[string]int{"success": 1})
@@ -71,7 +91,33 @@ func main() {
 		}
 		fmt.Println(postParams)
 		if val, ok := postParams["message"]; ok {
-			result := rabbit2.Publish(val.(string))
+			jsonBytes, err := json.Marshal(val)
+			if err != nil {
+				goutils.Logging(err)
+			}
+			result := rabbit2.Publish(jsonBytes)
+			if result {
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(map[string]int{"success": 1})
+			} else {
+				w.WriteHeader(http.StatusFailedDependency)
+				json.NewEncoder(w).Encode(map[string]int{"success": 0})
+			}
+		}
+	}).Methods("POST")
+	r.HandleFunc("/send/", func(w http.ResponseWriter, r *http.Request) {
+		postParams := make(map[string]any)
+		err := json.NewDecoder(r.Body).Decode(&postParams)
+		if err != nil {
+			goutils.Logging(err)
+		}
+		fmt.Println(postParams)
+		if val, ok := postParams["message"]; ok {
+			jsonBytes, err := json.Marshal(val)
+			if err != nil {
+				goutils.Logging(err)
+			}
+			result := rabbit3.Publish(jsonBytes)
 			if result {
 				w.WriteHeader(http.StatusOK)
 				json.NewEncoder(w).Encode(map[string]int{"success": 1})
@@ -95,8 +141,17 @@ func main() {
 		QueueTitle: config2.QueueTitle,
 		Rmq:        rabbit2,
 	}
-	worker1.Run()
-	worker2.Run()
+	worker3 := learn.Worker{
+		QueueTitle: config3.QueueTitle,
+		Rmq:        rabbit3,
+	}
+	senderWorker := learn.GetSender(&worker3)
+	callback := func(worker *learn.Worker, msg amqp091.Delivery) {
+		fmt.Println(worker.Rmq.GetConfig().ConsumerTitle, string(msg.Body))
+	}
+	worker1.Run(callback)
+	worker2.Run(callback)
+	senderWorker.Run(senderWorker.GetHandle())
 
 	select {}
 }
