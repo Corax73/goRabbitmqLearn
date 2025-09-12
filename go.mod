@@ -1,6 +1,6 @@
 module rabbitmqlearn
 
-go 1.25
+go 1.25.0
 
 require (
 	github.com/Corax73/goUtils v0.0.0-20250810185941-35aecd4e7202
@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/Corax73/rmqservicesimple v0.0.0-20250912042546-d4998ed34e0c // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 )

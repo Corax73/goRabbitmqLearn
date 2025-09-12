@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	frompackage "rabbitmqlearn/fromPackage"
 	"rabbitmqlearn/learn"
 	"slices"
 	"sync"
@@ -11,6 +12,8 @@ import (
 	goutils "github.com/Corax73/goUtils"
 	"github.com/gorilla/mux"
 	"github.com/rabbitmq/amqp091-go"
+
+	rmq "github.com/Corax73/rmqservicesimple"
 )
 
 func main() {
@@ -43,7 +46,7 @@ func main() {
 		Durable:       true,
 		NoWait:        true,
 	}
-	rabbit1 := learn.Init(&config1)
+	rabbit1 := learn.Init1(&config1)
 
 	config2 := learn.ConnectConfig{
 		Login:         envData["RMQ_LOGIN"],
@@ -58,9 +61,9 @@ func main() {
 		Durable:       true,
 		NoWait:        true,
 	}
-	rabbit2 := learn.Init(&config2)
+	rabbit2 := learn.Init1(&config2)
 
-	config3 := learn.ConnectConfig{
+	config3 := rmq.ConnectConfig{
 		Login:         envData["RMQ_LOGIN"],
 		Password:      envData["RMQ_PASSWORD"],
 		Ip:            envData["RMQ_HOST"],
@@ -73,7 +76,7 @@ func main() {
 		Durable:       true,
 		NoWait:        true,
 	}
-	rabbit3 := learn.Init(&config3)
+	rabbit3 := rmq.Init(&config3)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/publish1/", func(w http.ResponseWriter, r *http.Request) {
@@ -153,16 +156,18 @@ func main() {
 		QueueTitle: config2.QueueTitle,
 		Rmq:        rabbit2,
 	}
-	worker3 := learn.Worker{
-		QueueTitle: config3.QueueTitle,
-		Rmq:        rabbit3,
-	}
-	senderWorker := learn.GetSender(&worker3)
+
 	callback := func(worker *learn.Worker, msg amqp091.Delivery) {
 		fmt.Println(worker.Rmq.GetConfig().ConsumerTitle, string(msg.Body))
 	}
 	worker1.Run(callback)
 	worker2.Run(callback)
+	worker3 := rmq.Worker{
+		QueueTitle: config3.QueueTitle,
+		Rmq:        rabbit3,
+	}
+
+	senderWorker := frompackage.GetSender(&worker3)
 	senderWorker.Run(senderWorker.GetHandle())
 
 	select {}

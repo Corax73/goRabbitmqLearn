@@ -1,5 +1,9 @@
 github.com/Corax73/goUtils v0.0.0-20250810185941-35aecd4e7202 h1:aor1WBTZVutt+FGWBf86dbivFIeLoRP3yF+z55dhGjg=
 github.com/Corax73/goUtils v0.0.0-20250810185941-35aecd4e7202/go.mod h1:i13y1h/K3boId8of75+w7RjoeUu/tE5A921YjRjVECI=
+github.com/Corax73/rmqservicesimple v0.0.0-20250912042224-8ed38a59e072 h1:N/sIeL9uT5HuyCcnP5cKyiYFTCPnPjygBAIwVGtUbSI=
+github.com/Corax73/rmqservicesimple v0.0.0-20250912042224-8ed38a59e072/go.mod h1:XDuQj0RH8bbZcpyz5b1vHLzHsqR/Q3t37IUdFuKtmRk=
+github.com/Corax73/rmqservicesimple v0.0.0-20250912042546-d4998ed34e0c h1:hVfh/A+ePRgpUeUb2K9a2JKgmr0JWARIMBob1lTKuoI=
+github.com/Corax73/rmqservicesimple v0.0.0-20250912042546-d4998ed34e0c/go.mod h1:mMBzm8eHG4erL047RQyrn94cTpfD+OckJk3cdyNHew8=
 github.com/gorilla/mux v1.8.1 h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=
 github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=
@@ -10,3 +14,5 @@ go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 golang.org/x/crypto v0.41.0 h1:WKYxWedPGCTVVl5+WHSSrOBT0O8lx32+zxmHxijgXp4=
 golang.org/x/crypto v0.41.0/go.mod h1:pO5AFd7FA68rFak7rOAGVuygIISepHftHnr8dr6+sUc=
+golang.org/x/crypto v0.42.0 h1:chiH31gIWm57EkTXpwnqf8qeuMUi0yekh6mT2AvFlqI=
+golang.org/x/crypto v0.42.0/go.mod h1:4+rDnOTJhQCx2q7/j6rAN5XDw8kPjeaXEUR2eL94ix8=

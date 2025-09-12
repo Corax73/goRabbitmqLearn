@@ -24,7 +24,7 @@ type MyRabbitmq struct {
 	config  *ConnectConfig
 }
 
-func Init(config *ConnectConfig) *MyRabbitmq {
+func Init1(config *ConnectConfig) *MyRabbitmq {
 	r := &MyRabbitmq{config: config}
 	r.setConnect()
 	r.setChannel()
